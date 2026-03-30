@@ -5,7 +5,6 @@ output: html_fragment
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE, error=FALSE)
-#final code for report:
 library(tidyverse)
 
 latest_data <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSmUPLB7jL4d00cEHQSpFoTLtxfo3ZRLe1480bfGlNWeD8Kydc1Iq17xGcqw2asaD5FViJUz545cV33/pub?output=csv") %>%
