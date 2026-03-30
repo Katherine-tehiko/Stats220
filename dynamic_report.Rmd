@@ -1,0 +1,84 @@
+---
+title: My dynamic report
+output: html_fragment
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE, error=FALSE)
+#final code for report:
+library(tidyverse)
+
+latest_data <- read_csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSmUPLB7jL4d00cEHQSpFoTLtxfo3ZRLe1480bfGlNWeD8Kydc1Iq17xGcqw2asaD5FViJUz545cV33/pub?output=csv") %>%
+  rename(platform = 2,num_ads = 3, ads_interacted = 4,ads_relevant = 5, ad_repeated = 6)
+ 
+```
+
+```{css}
+h2 {color: #14020D;font-size: 25px; font-family:lato}
+
+body {background-color: #FFD1E4;font-family: Arial, sans-serif;
+  font-size: 15px;}
+
+```
+
+##  Tracking Ad Exposure Across Social Media Platforms
+This report analyses data collected from 20-minute social media sessions, tracking how many ads were seen, how many were interacted with, whether ads felt relevant, and whether any ad appeared more than once.
+The data was collected across four platforms: YouTube, TikTok, Instagram, and Facebook.
+
+ 
+
+
+```{r}
+
+#mean number of ads
+mean_ads <- mean(latest_data$num_ads)
+
+#max number of ads
+max_ads <- max(latest_data$num_ads)
+
+#min number of ads
+min_ads <- min(latest_data$num_ads)
+
+#median number of ads
+median_ads <- median(latest_data$num_ads)
+
+#mean of ads interacted with
+mean_interacted <-mean(latest_data$ads_interacted)
+
+#max ads interacted with
+max_interacted <- max(latest_data$ads_interacted)
+
+#min ads interacted with
+min_interacted <- min(latest_data$ads_interacted)
+
+#median of ads interacted with
+median_interacted <- median(latest_data$ads_interacted)
+
+
+```
+In a 20-minute social media session, participants saw an average of **`r mean_ads`** ads, 
+with the number of ads ranging from **`r min_ads`** to **`r max_ads`**. 
+On average, participants only interacted with **`r mean_interacted`** ads per session. 
+
+```{r}
+ggplot(data= latest_data) +
+     geom_bar(aes(x= platform), fill = "plum") +
+         labs(title = "Social Media Platforms Used in 20 Minute session", x= "Platform", y= "Count")
+
+```
+
+```{r}
+ggplot(data = latest_data) +
+     geom_bar(aes(x= num_ads), fill = "skyblue") +
+         labs(title = "Number of Ads Seen in a 20 Minute Session", x= "Number of Ads", y= "Count")
+
+```
+
+```{r}
+ggplot(data = latest_data) +
+     geom_bar(aes(x= ads_interacted), fill = "hotpink")+
+         labs(title = "Number of Ads Interacted With in a 20 Minute Social Media Break", x= "Amount Interacted With", y= "Count")
+
+```
+
+
