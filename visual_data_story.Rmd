@@ -1,0 +1,194 @@
+---
+title: Ad Exposure on Social Media
+author: Katherine Te Hiko
+output: html_document
+---
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE, error=FALSE)
+
+```
+
+
+```{r loaddata, include=FALSE}
+library(tidyverse)
+library(tidyr)
+library(lubridate)
+logged_data <- read.csv("https://docs.google.com/spreadsheets/d/e/2PACX-1vSmUPLB7jL4d00cEHQSpFoTLtxfo3ZRLe1480bfGlNWeD8Kydc1Iq17xGcqw2asaD5FViJUz545cV33/pub?output=csv") %>%
+  rename(
+    Platform       = 2,
+    Ads_Seen       = 3,
+    Ads_Interacted = 4,
+    Ads_Relevant   = 5,
+    Ad_Repeated    = 6
+  ) %>%
+  mutate(
+    Timestamp         = dmy_hms(Timestamp),
+    Date              = as_date(Timestamp),
+    Hour              = hour(Timestamp),
+    Week              = week(Timestamp),
+    Platform_clean    = str_to_title(str_trim(Platform)),
+    Is_Video_Platform = str_detect(Platform_clean, "TikTok|Instagram|YouTube"),
+    Interaction_Rate  = Ads_Interacted / Ads_Seen
+  ) %>%
+  arrange(desc(Ads_Seen))
+
+platform_summary <- logged_data %>%
+  group_by(Platform_clean) %>%
+  summarise(
+    Avg_Ads_Seen         = mean(Ads_Seen, na.rm = TRUE),
+    Avg_Ads_Interacted   = mean(Ads_Interacted, na.rm = TRUE),
+    Avg_Interaction_Rate = mean(Interaction_Rate, na.rm = TRUE),
+    Sessions             = n()
+  ) %>%
+  arrange(desc(Avg_Ads_Seen))
+
+daily_summary <- logged_data %>%
+  group_by(Date) %>%
+  summarise(
+    Total_Ads_Seen       = sum(Ads_Seen, na.rm = TRUE),
+    Total_Ads_Interacted = sum(Ads_Interacted, na.rm = TRUE),
+    Sessions             = n(),
+    Avg_Ads_Seen         = Total_Ads_Seen / Sessions
+  )
+
+daily_summary_filled <- daily_summary %>%
+  complete(Date = seq(min(Date), max(Date), by = "day"))
+
+my_colours <- c("#E5CEeC","#C83184","#F0F0F0","#AA4479","#982649","#6A041D","black","white")
+
+my_theme <- theme(
+  plot.background  = element_rect(fill = my_colours[1]),
+  panel.background = element_rect(fill = my_colours[1]),
+  panel.grid       = element_blank(),
+  axis.ticks       = element_blank(),
+  axis.line        = element_blank(),
+  plot.margin      = margin(0.5, 0.5, 0.5, 0.5, "cm"),
+  plot.title       = element_text(colour = my_colours[6])
+)
+```
+
+
+```{js}
+$(function() {
+  $(".level2").css('visibility', 'hidden');
+  $(".level2").first().css('visibility', 'visible');
+  $(".container-fluid").height($(".container-fluid").height() + 300);
+  $(window).on('scroll', function() {
+    $('h2').each(function() {
+      var h2Top = $(this).offset().top - $(window).scrollTop();
+      var windowHeight = $(window).height();
+      if (h2Top >= 0 && h2Top <= windowHeight / 2) {
+        $(this).parent('div').css('visibility', 'visible');
+      } else if (h2Top > windowHeight / 2) {
+        $(this).parent('div').css('visibility', 'hidden');
+      }
+    });
+  });
+})
+```
+
+```{css, echo= FALSE}
+
+body {
+  background-color: #feebe2;
+  color: #7a0177;
+  font-family: Georgia, serif;
+}
+
+h1, h2 {
+  color: #7a0177;
+}
+
+p {
+  color: #c51b8a;
+}
+.figcaption {display: none}
+```
+
+![](https://emphatic.co/wp-content/uploads/2023/05/iStock-1400358779-scaled.jpg)
+
+## Introduction
+
+Over several weeks, I logged my social media usage across 20-minute phone sessions, recording how many ads I encountered, how many I interacted with, whether they felt relevant, and whether any repeated. This story explores what the data reveals about the nature of advertising across social media platforms.
+
+## Which Platform Shows the Most Ads?
+
+Not all social media platforms deliver the same advertising experience.
+The chart below shows the average number of ads seen per 20-minute session on each platform.
+
+```{r plot1, fig.alt="Bar chart showing average number of ads seen per social media platform per 20-minute session"}
+
+ggplot(platform_summary, aes(x = reorder(Platform_clean, Avg_Ads_Seen),
+                               y = Avg_Ads_Seen,
+                               fill = Platform_clean)) +
+    geom_col(show.legend = FALSE) +
+    geom_text(aes(label = round(Avg_Ads_Seen, 1)), hjust = -0.2, size = 3.5,
+              colour = my_colours[6]) +
+    coord_flip() +
+    scale_fill_manual(values = c(my_colours[2], my_colours[3], my_colours[4],
+                                 my_colours[5], my_colours[6])) +
+    labs(
+      title    = "Average Number of Ads Seen per Social Media Platform",
+      subtitle = "Based on 20-minute phone use sessions",
+      x        = "Platform",
+      y        = "Average Ads Seen",
+      caption  = "Source: Personal logged data"
+    ) +
+    my_theme
+```
+
+This plot revels that facebook has the highest number of ads recorded within a 20 minute period, with an average of 26.6 ads, whereas youtube has the lowest number of recorded ads with an average of 0.1 ads within a 20 minute session. 
+
+## Do I Actually Engage With the Ads I See?
+
+Seeing an ad and interacting with it are very different things. The scatter plot below shows the relationship between how many ads I saw and how many I interacted with across all sessions.
+
+```{r plot2, fig.alt="Scatter plot showing relationship between ads seen and ads interacted with, coloured by platform"}
+ggplot(logged_data, aes(x = Ads_Seen, y = Ads_Interacted, colour = Platform_clean)) +
+  geom_point(size = 3, alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, colour = my_colours[7], linetype = "solid") +
+  scale_colour_manual(values = c(my_colours[2], my_colours[3], my_colours[4],
+                                 my_colours[5], my_colours[6])) +
+  labs(
+    title    = "Relationship Between Ads Seen and Ads Interacted With",
+    subtitle = "Each point represents one 20-minute session",
+    x        = "Number of Ads Seen",
+    y        = "Number of Ads Interacted With",
+    colour   = "Platform",
+    caption  = "Source: Personal logged data"
+  ) +
+  my_theme
+```
+
+Despite the graph looking linear in a positive direction, my interaction rate remained consistently low, even with a large number of ads seen, suggesting that most ads, regardless of platform, did not feel compelling enough to engage with.
+
+## How Did My Ad Exposure Change Over Time?
+
+Finally, looking at how ad exposure changed across the logging period reveals interesting patterns in my phone usage habits
+
+```{r plot3, fig.alt="Line chart showing average ads seen per day over the logging period from March to May 2026"}
+ggplot(daily_summary, aes(x = Date, y = Avg_Ads_Seen)) +
+  geom_line(colour = my_colours[5], linewidth = 1) +
+  geom_point(colour = my_colours[6], size = 2.5) +
+  scale_x_date(date_labels = "%d %b", date_breaks = "2 days") +
+  labs(
+    title    = "Average Ads Seen Per Day Over the Logging Period",
+    subtitle = "Average across all 20-minute sessions per day",
+    x        = "Date",
+    y        = "Average Ads Seen per Session",
+    caption  = "Source: Personal logged data | Timestamp parsed with {lubridate}"
+  ) +
+  my_theme +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, colour = my_colours[6]))
+
+```
+
+Ad exposure was higher during certain weeks, possibly reflecting increased phone usage during busier or more stressful periods. The gaps in the data reflect days where no logging sessions were recorded.
+
+## Conclusion
+
+This personal data story highlights how advertising is deeply embedded in everyday social media use. Even within short 20-minute sessions, users are exposed to a significant number of ads most of which go unnoticed or unengaged with. Additionally Each visualisation was built using {ggplot2}, mapping variables to aesthetic properties such as position, colour, and size, following the grammar of graphics framework.
+
